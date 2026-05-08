@@ -21,8 +21,20 @@ from flask import (
 )
 import lxml.etree as etree
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "bloodsugar-secret-2026")
+_secret_key = os.environ.get("SECRET_KEY")
+if not _secret_key:
+    import secrets
+    _secret_key = secrets.token_hex(32)
+    logger.warning(
+        "SECRET_KEY environment variable is not set. "
+        "A random key has been generated for this session. "
+        "Set SECRET_KEY to a fixed value in production."
+    )
+app.secret_key = _secret_key
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 OUTPUT_FOLDER = os.path.join(os.path.dirname(__file__), "outputs")
@@ -32,8 +44,12 @@ os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 ALLOWED_EXCEL = {"xlsx", "xls"}
 ALLOWED_WORD = {"docx"}
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+_DATETIME_FORMATS = (
+    "%Y-%m-%d %H:%M:%S",
+    "%Y-%m-%d %H:%M",
+    "%Y/%m/%d %H:%M",
+    "%Y/%m/%d %H:%M:%S",
+)
 
 
 def allowed_file(filename, allowed):
@@ -92,7 +108,7 @@ def parse_excel(filepath):
             dt = raw_dt
         else:
             dt_str = str(raw_dt).strip()
-            for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M", "%Y/%m/%d %H:%M", "%Y/%m/%d %H:%M:%S"):
+            for fmt in _DATETIME_FORMATS:
                 try:
                     dt = datetime.strptime(dt_str, fmt)
                     break
@@ -362,10 +378,12 @@ def generate():
         flash("Word 文件格式不正确，请上传 .docx 文件", "error")
         return redirect(url_for("index"))
 
-    # Save uploaded files
+    # Save uploaded files preserving original extension
     uid = uuid.uuid4().hex
-    excel_path = os.path.join(UPLOAD_FOLDER, f"{uid}_data.xlsx")
-    word_path = os.path.join(UPLOAD_FOLDER, f"{uid}_template.docx")
+    excel_ext = excel_file.filename.rsplit(".", 1)[1].lower()
+    word_ext = word_file.filename.rsplit(".", 1)[1].lower()
+    excel_path = os.path.join(UPLOAD_FOLDER, f"{uid}_data.{excel_ext}")
+    word_path = os.path.join(UPLOAD_FOLDER, f"{uid}_template.{word_ext}")
     excel_file.save(excel_path)
     word_file.save(word_path)
 
