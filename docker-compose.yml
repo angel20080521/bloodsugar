@@ -1,0 +1,16 @@
+version: "3.9"
+
+services:
+  bloodsugar:
+    build: .
+    container_name: bloodsugar-app
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    environment:
+      # REQUIRED: set a strong random value before deploying to production.
+      # Generate one with: python3 -c "import secrets; print(secrets.token_hex(32))"
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env or the environment}
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
