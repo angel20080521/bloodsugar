@@ -41,7 +41,7 @@ OUTPUT_FOLDER = os.path.join(os.path.dirname(__file__), "outputs")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
-ALLOWED_EXCEL = {"xlsx", "xls"}
+ALLOWED_EXCEL = {"xlsx"}
 WORD_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "血糖数据-01.docx")
 
 _DATETIME_FORMATS = (
@@ -175,7 +175,7 @@ def parse_word_template(filepath):
 # Blood-sugar matching
 # ---------------------------------------------------------------------------
 
-def match_readings(records, time_points, window_minutes=30):
+def match_readings(records, time_points, window_minutes=4):
     """
     For each (date, time_point) pair find the reading whose timestamp is
     closest to `date + time_point`, within `window_minutes` on either side.
@@ -376,13 +376,12 @@ def generate():
         return redirect(url_for("index"))
 
     if not allowed_file(excel_file.filename, ALLOWED_EXCEL):
-        flash("Excel 文件格式不正确，请上传 .xlsx 或 .xls 文件", "error")
+        flash("Excel 文件格式不正确，请上传 .xlsx 文件", "error")
         return redirect(url_for("index"))
 
-    # Save uploaded Excel file
+    # Save uploaded Excel file with a fixed extension (no user input in path)
     uid = uuid.uuid4().hex
-    excel_ext = excel_file.filename.rsplit(".", 1)[1].lower()
-    excel_path = os.path.join(UPLOAD_FOLDER, f"{uid}_data.{excel_ext}")
+    excel_path = os.path.join(UPLOAD_FOLDER, f"{uid}_data.xlsx")
     excel_file.save(excel_path)
 
     try:
