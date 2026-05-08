@@ -1,0 +1,14 @@
+version: "3.9"
+
+services:
+  bloodsugar:
+    build: .
+    container_name: bloodsugar-app
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    environment:
+      - SECRET_KEY=change-me-in-production
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs

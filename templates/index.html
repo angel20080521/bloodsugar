@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>动态血糖记录生成器</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", "Microsoft YaHei", Arial, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,.10);
+      padding: 40px 44px;
+      max-width: 560px;
+      width: 100%;
+    }
+
+    h1 {
+      font-size: 1.55rem;
+      color: #1a3a5c;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      color: #6b7280;
+      font-size: .92rem;
+      margin-bottom: 32px;
+    }
+
+    .field {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      font-size: .88rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    /* Custom file input */
+    .file-wrapper {
+      position: relative;
+    }
+    .file-wrapper input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .file-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: #f8fafc;
+      transition: border-color .2s, background .2s;
+      cursor: pointer;
+    }
+    .file-wrapper:hover .file-label,
+    .file-wrapper input:focus + .file-label {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .file-icon {
+      font-size: 1.4rem;
+      flex-shrink: 0;
+    }
+    .file-text { font-size: .88rem; color: #6b7280; }
+    .file-name { font-size: .88rem; color: #1d4ed8; font-weight: 600; display: none; }
+
+    .row-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: .92rem;
+      color: #111827;
+      transition: border-color .2s;
+    }
+    input[type="number"]:focus { outline: none; border-color: #3b82f6; }
+
+    .hint { font-size: .80rem; color: #9ca3af; margin-top: 4px; }
+
+    button[type="submit"] {
+      width: 100%;
+      margin-top: 8px;
+      padding: 13px;
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    button[type="submit"]:hover { background: #1d4ed8; }
+    button[type="submit"]:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    .spinner {
+      display: none;
+      width: 18px; height: 18px;
+      border: 3px solid rgba(255,255,255,.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Flash messages */
+    .alerts { margin-bottom: 20px; }
+    .alert {
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: .88rem;
+      margin-bottom: 8px;
+    }
+    .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .alert-success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+
+    .divider { border: none; border-top: 1px solid #e5e7eb; margin: 28px 0; }
+
+    .info-box {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: .84rem;
+      color: #0369a1;
+      line-height: 1.6;
+    }
+    .info-box strong { color: #0c4a6e; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>📊 动态血糖记录生成器</h1>
+  <p class="subtitle">上传血糖数据（Excel）和记录模板（Word），自动生成格式化的血糖记录文档</p>
+
+  {% if get_flashed_messages() %}
+  <div class="alerts">
+    {% for category, message in get_flashed_messages(with_categories=true) %}
+    <div class="alert alert-{{ category }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <form id="uploadForm" method="POST" action="/generate" enctype="multipart/form-data">
+
+    <div class="field">
+      <label>📋 血糖数据文件（Excel）</label>
+      <div class="file-wrapper">
+        <input type="file" name="excel_file" id="excelFile" accept=".xlsx,.xls" required />
+        <div class="file-label">
+          <span class="file-icon">📂</span>
+          <span class="file-text" id="excelText">点击或拖拽上传 .xlsx / .xls 文件</span>
+          <span class="file-name" id="excelName"></span>
+        </div>
+      </div>
+      <p class="hint">需包含"血糖时间"列和"血糖值"列</p>
+    </div>
+
+    <div class="field">
+      <label>📄 Word 模板文件</label>
+      <div class="file-wrapper">
+        <input type="file" name="word_template" id="wordFile" accept=".docx" required />
+        <div class="file-label">
+          <span class="file-icon">📄</span>
+          <span class="file-text" id="wordText">点击或拖拽上传 .docx 文件</span>
+          <span class="file-name" id="wordName"></span>
+        </div>
+      </div>
+      <p class="hint">第一行为表头，第一列为"日期"，其余列为时间点（如 06:00）</p>
+    </div>
+
+    <div class="field">
+      <label>⏱ 时间匹配窗口（分钟）</label>
+      <input type="number" name="window_minutes" id="windowMinutes"
+             value="30" min="1" max="120" />
+      <p class="hint">在目标时间点前后各多少分钟内寻找最近的血糖读数，默认 30 分钟</p>
+    </div>
+
+    <button type="submit" id="submitBtn">
+      <span class="spinner" id="spinner"></span>
+      <span id="submitText">生成 Word 文档并下载</span>
+    </button>
+  </form>
+
+  <hr class="divider" />
+
+  <div class="info-box">
+    <strong>使用说明：</strong><br />
+    1. Excel 文件每行一条血糖读数，包含时间戳和血糖值（mmol/L）<br />
+    2. Word 模板的表格第一行为表头，第一列为"日期"，其余列为时间点（HH:MM 格式）<br />
+    3. 系统会在每个时间点前后的匹配窗口内寻找最近的血糖读数<br />
+    4. 生成完成后文档将自动开始下载
+  </div>
+</div>
+
+<script>
+  // Show selected filename
+  function bindFileInput(inputId, textId, nameId) {
+    const input = document.getElementById(inputId);
+    const text = document.getElementById(textId);
+    const name = document.getElementById(nameId);
+    input.addEventListener('change', () => {
+      if (input.files.length > 0) {
+        text.style.display = 'none';
+        name.style.display = 'inline';
+        name.textContent = input.files[0].name;
+      } else {
+        text.style.display = 'inline';
+        name.style.display = 'none';
+      }
+    });
+  }
+
+  bindFileInput('excelFile', 'excelText', 'excelName');
+  bindFileInput('wordFile', 'wordText', 'wordName');
+
+  // Show spinner on submit
+  document.getElementById('uploadForm').addEventListener('submit', function () {
+    const btn = document.getElementById('submitBtn');
+    const spinner = document.getElementById('spinner');
+    const text = document.getElementById('submitText');
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    text.textContent = '处理中，请稍候…';
+    // Re-enable after 30s in case of error redirect
+    setTimeout(() => {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      text.textContent = '生成 Word 文档并下载';
+    }, 30000);
+  });
+</script>
+</body>
+</html>
