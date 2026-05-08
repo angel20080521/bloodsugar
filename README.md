@@ -45,7 +45,7 @@ bloodsugar/
 
 ### 1. Excel 解析（`parse_excel`）
 
-- 读取 `.xlsx` / `.xls` 文件的活跃工作表
+- 读取 `.xlsx` 文件的活跃工作表
 - 自动识别"血糖时间"列（含"时间"、"日期"等关键字）和"血糖值"列（含"血糖"、"mmol"等关键字）
 - 将每行解析为 `(datetime, float)` 元组列表
 
@@ -129,7 +129,7 @@ python app.py
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `SECRET_KEY` | Flask session 密钥（生产环境请修改） | `bloodsugar-secret-2026` |
+| `SECRET_KEY` | Flask session 密钥（生产环境必须设置） | 未设置时自动生成随机值（每次重启变化，不适合生产环境） |
 
 ---
 
