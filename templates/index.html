@@ -160,7 +160,7 @@
 <body>
 <div class="card">
   <h1>📊 动态血糖记录生成器</h1>
-  <p class="subtitle">上传血糖数据（Excel）和记录模板（Word），自动生成格式化的血糖记录文档</p>
+  <p class="subtitle">上传血糖数据（Excel），自动生成格式化的血糖记录文档</p>
 
   {% if get_flashed_messages() %}
   <div class="alerts">
@@ -186,23 +186,10 @@
     </div>
 
     <div class="field">
-      <label>📄 Word 模板文件</label>
-      <div class="file-wrapper">
-        <input type="file" name="word_template" id="wordFile" accept=".docx" required />
-        <div class="file-label">
-          <span class="file-icon">📄</span>
-          <span class="file-text" id="wordText">点击或拖拽上传 .docx 文件</span>
-          <span class="file-name" id="wordName"></span>
-        </div>
-      </div>
-      <p class="hint">第一行为表头，第一列为"日期"，其余列为时间点（如 06:00）</p>
-    </div>
-
-    <div class="field">
       <label>⏱ 时间匹配窗口（分钟）</label>
       <input type="number" name="window_minutes" id="windowMinutes"
-             value="30" min="1" max="120" />
-      <p class="hint">在目标时间点前后各多少分钟内寻找最近的血糖读数，默认 30 分钟</p>
+             value="4" min="1" max="120" />
+      <p class="hint">在目标时间点前后各多少分钟内寻找最近的血糖读数，默认 4 分钟</p>
     </div>
 
     <button type="submit" id="submitBtn">
@@ -216,7 +203,7 @@
   <div class="info-box">
     <strong>使用说明：</strong><br />
     1. Excel 文件每行一条血糖读数，包含时间戳和血糖值（mmol/L）<br />
-    2. Word 模板的表格第一行为表头，第一列为"日期"，其余列为时间点（HH:MM 格式）<br />
+    2. 系统使用内置标准模板自动生成记录表格<br />
     3. 系统会在每个时间点前后的匹配窗口内寻找最近的血糖读数<br />
     4. 生成完成后文档将自动开始下载
   </div>
@@ -241,7 +228,6 @@
   }
 
   bindFileInput('excelFile', 'excelText', 'excelName');
-  bindFileInput('wordFile', 'wordText', 'wordName');
 
   // Show spinner on submit
   document.getElementById('uploadForm').addEventListener('submit', function () {

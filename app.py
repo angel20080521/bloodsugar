@@ -42,7 +42,7 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 ALLOWED_EXCEL = {"xlsx", "xls"}
-ALLOWED_WORD = {"docx"}
+WORD_TEMPLATE_PATH = os.path.join(os.path.dirname(__file__), "血糖数据-01.docx")
 
 _DATETIME_FORMATS = (
     "%Y-%m-%d %H:%M:%S",
@@ -54,6 +54,12 @@ _DATETIME_FORMATS = (
 
 def allowed_file(filename, allowed):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in allowed
+
+
+def get_word_template_path():
+    if not os.path.isfile(WORD_TEMPLATE_PATH):
+        raise FileNotFoundError(f"Word 模板文件未找到：{WORD_TEMPLATE_PATH}")
+    return WORD_TEMPLATE_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -358,15 +364,14 @@ def index():
 
 @app.route("/generate", methods=["POST"])
 def generate():
-    # Validate uploads
-    if "excel_file" not in request.files or "word_template" not in request.files:
-        flash("请同时上传 Excel 数据文件和 Word 模板文件", "error")
+    # Validate upload
+    if "excel_file" not in request.files:
+        flash("请上传 Excel 数据文件", "error")
         return redirect(url_for("index"))
 
     excel_file = request.files["excel_file"]
-    word_file = request.files["word_template"]
 
-    if excel_file.filename == "" or word_file.filename == "":
+    if excel_file.filename == "":
         flash("请选择文件后再提交", "error")
         return redirect(url_for("index"))
 
@@ -374,20 +379,16 @@ def generate():
         flash("Excel 文件格式不正确，请上传 .xlsx 或 .xls 文件", "error")
         return redirect(url_for("index"))
 
-    if not allowed_file(word_file.filename, ALLOWED_WORD):
-        flash("Word 文件格式不正确，请上传 .docx 文件", "error")
-        return redirect(url_for("index"))
-
-    # Save uploaded files preserving original extension
+    # Save uploaded Excel file
     uid = uuid.uuid4().hex
     excel_ext = excel_file.filename.rsplit(".", 1)[1].lower()
-    word_ext = word_file.filename.rsplit(".", 1)[1].lower()
     excel_path = os.path.join(UPLOAD_FOLDER, f"{uid}_data.{excel_ext}")
-    word_path = os.path.join(UPLOAD_FOLDER, f"{uid}_template.{word_ext}")
     excel_file.save(excel_path)
-    word_file.save(word_path)
 
     try:
+        # Use fixed Word template
+        word_path = get_word_template_path()
+
         # Parse
         excel_data = parse_excel(excel_path)
         template_info = parse_word_template(word_path)
@@ -395,7 +396,7 @@ def generate():
         records = excel_data["records"]
         time_points = template_info["time_points"]
 
-        window = int(request.form.get("window_minutes", 30))
+        window = int(request.form.get("window_minutes", 4))
 
         # Match readings to time points
         matched = match_readings(records, time_points, window_minutes=window)
@@ -425,12 +426,11 @@ def generate():
         return redirect(url_for("index"))
 
     finally:
-        # Clean up uploaded files
-        for path in (excel_path, word_path):
-            try:
-                os.remove(path)
-            except OSError:
-                pass
+        # Clean up uploaded Excel file
+        try:
+            os.remove(excel_path)
+        except OSError:
+            pass
 
 
 @app.route("/health")
