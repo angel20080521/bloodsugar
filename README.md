@@ -148,3 +148,5 @@ python app.py
 - 上传文件在处理完成后会立即删除，不会持久保存
 - 生产部署时请修改 `docker-compose.yml` 中的 `SECRET_KEY`
 - 如需支持超大 Excel 文件，可在 `docker-compose.yml` 中增加 Gunicorn 超时时间
+
+- 测试gitee
